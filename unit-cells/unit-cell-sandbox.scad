@@ -1,5 +1,6 @@
 r = 5; // sphere radius
-sq = 0.95; // compression factor to allow for bonding
+sq = 1; // compression factor to allow for bonding
+re = 1.05 * r; // expanded radius. Opposite of above to see if it makes code easier to read/write.
 $fn=25;
 
 
@@ -10,6 +11,7 @@ simple_l = 2;
 bcc_l = 4/sqrt(3);
 fcc_l = 2*sqrt(2);
 
+// ONLY WORKS FOR CUBIC STRUCTURES
 module unitcell(coord, l, uc = false, support=true) {
     intersection(){
         for (i = coord){
@@ -18,39 +20,40 @@ module unitcell(coord, l, uc = false, support=true) {
                 rotate(180,[1,0,0])cylinder(d=support?1.8:0,h=sq*l*r,center=false);
             }
         }
-        cube((uc?sq*l*r:sq*l*r+2*r)*[1,1,1],center=true);
+        cube((uc?sq*l*r:sq*l*r+10*r)*[1,1,1],center=true);
     }
 }
-
 module pedestal(r,h){
     translate([0,0,1.51])cylinder(r = sqrt(2)*r/2, h=h);
     cylinder(r = r,h=1.5);
 }
 
 
-module hexlayer(r,n=6){
+module hexlayer(r,n=6,support=true, support_l = 4*sqrt(2/3)){
     union(){
-        sphere(r);
+        sphere(re);
+        rotate(180,[1,0,0])cylinder(d=support?1.8:0,h=support_l*r,center=false);
         for(i = [1:n]){
             rotate(60*(i-1),[0,0,1])
-            translate([0,0.95*2*r,0])
-            sphere(r);
+            translate([0,2*r,0]){
+                sphere(re);
+                rotate(180,[1,0,0])cylinder(d=support?1.8:0,h=support_l*r,center=false);}
         }
     }
 }
 
+*translate([-sqrt(3)*r/3,-r,2*sqrt(2/3)*r])hexlayer(r,1);
 // HCP is still a work in progress
-*intersection(){
-linear_extrude(2*sqrt(8/3)*0.95*r){
-    polygon([[0,0],[0,2*r],[-sin(60)*2*r,r],[-sin(60)*2*r,-r]]);}
-    
-
-translate([0,0,0]){
-    hexlayer(r,3);
-    translate([0,0,2*sqrt(8/3)*0.95*r])hexlayer(r,3);
-    color("red",0.5)translate([cos(60)*0.95*r,-0.95*r,sqrt(8/3)*0.95*r])hexlayer(r,2);
-}}
-
+union(){
+    union(){
+        hexlayer(r,6);
+    translate([r/1.75,-r,2*sqrt(2/3)*r])hexlayer(r,2);
+    translate([0,0,4*sqrt(2/3)*r])hexlayer(r,6);
+    }
+color("red",0.5)
+linear_extrude(4*sqrt(2/3)*r)
+polygon([[0,0],[0,2*r],[sqrt(3)*r,r],[sqrt(3)*r,-r]]);
+}
 
 
 
